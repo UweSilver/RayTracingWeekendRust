@@ -89,7 +89,19 @@ impl Point for Ray{
     }
 }
 
+fn hit_sphere(center: Point3, radius: f64, ray: Ray) -> bool{
+    let oc = ray.origin - center;
+    let a = dot(ray.dir, ray.dir);
+    let b = 2.0 * dot(oc, ray.dir);
+    let c = dot(oc, oc) - radius * radius;
+    let discriminant = b * b - 4.0 * a * c;
+    discriminant > 0.0
+}
+
 fn ray_colour(ray: Ray) -> Colour{
+    if hit_sphere(Point3{x: 0.0, y: 0.0, z: -1.0}, 0.5, ray){
+        return Colour{x: 1.0, y: 0.0, z: 0.0}
+    }
     let unit_direction: Vec3 = unit_vector(ray.dir);
     let t = 0.5 * (unit_direction.y + 1.0);
     (1.0 - t) * Colour{x: 1.0, y: 1.0, z: 1.0} + t * Colour{x: 0.5, y: 0.7, z: 1.0}
