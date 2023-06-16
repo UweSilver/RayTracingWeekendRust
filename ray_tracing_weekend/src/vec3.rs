@@ -1,4 +1,4 @@
-use std::{default, ops};
+use std::ops;
 
 #[derive(Copy, Debug, Clone)]
 pub struct Vec3 {
@@ -29,6 +29,14 @@ impl ops::Add<Vec3> for Vec3 {
     }
 }
 
+impl ops::AddAssign<Vec3> for Vec3 {
+    fn add_assign(&mut self, rhs: Vec3) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
 impl ops::Sub<Vec3> for Vec3 {
     type Output = Vec3;
     fn sub(self, rhs: Vec3) -> Vec3 {
@@ -38,6 +46,14 @@ impl ops::Sub<Vec3> for Vec3 {
             z: (self.z - rhs.z),
         };
         output
+    }
+}
+
+impl ops::SubAssign<Vec3> for Vec3 {
+    fn sub_assign(&mut self, rhs: Vec3) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self.z -= rhs.z;
     }
 }
 

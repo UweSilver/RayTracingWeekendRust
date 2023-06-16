@@ -1,20 +1,8 @@
-use rand::prelude::*;
-use std::{default, ops};
-
 mod vec3;
 use vec3::*;
 
 mod math_util;
 use math_util::*;
-
-fn write_colour(c: Colour) {
-    println!(
-        "{} {} {}",
-        (255.999 * c.x) as i32,
-        (255.999 * c.y) as i32,
-        (255.999 * c.z) as i32
-    );
-}
 
 #[derive(Copy, Debug, Clone)]
 struct Ray {
@@ -137,6 +125,7 @@ impl Hittable for HittableList {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
 struct Camera {
     origin: Point3,
     lower_left_corner: Point3,
@@ -171,6 +160,7 @@ impl Default for Camera {
         };
         camera.lower_left_corner = camera.origin
             - camera.horizontal / 2.0
+            - camera.vertical / 2.0
             - Vec3 {
                 x: 0.0,
                 y: 0.0,
@@ -178,6 +168,13 @@ impl Default for Camera {
             };
 
         camera
+    }
+}
+
+fn get_ray(camera: Camera, u: f64, v: f64) -> Ray {
+    Ray {
+        origin: camera.origin,
+        dir: camera.lower_left_corner + u * camera.horizontal + v * camera.vertical - camera.origin,
     }
 }
 
@@ -210,42 +207,35 @@ fn ray_colour(ray: Ray, hittable: Box<&dyn Hittable>) -> Colour {
         }
 }
 
+fn write_colour(pixel_colour: Colour, samples_per_pixel: i32) {
+    let mut r = pixel_colour.x;
+    let mut g = pixel_colour.y;
+    let mut b = pixel_colour.z;
+
+    let scale = 1.0 / samples_per_pixel as f64;
+    r *= scale;
+    g *= scale;
+    b *= scale;
+
+    println!(
+        "{} {} {}",
+        (255.999 * r) as i32,
+        (255.999 * g) as i32,
+        (255.999 * b) as i32
+    );
+}
+
 fn main() {
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 384;
     let image_height = (image_width as f64 / aspect_ratio) as i32;
+    let samples_per_pixel = 100;
 
     println!("P3");
     println!("{0} {1}", image_width, image_height);
     println!("255");
 
-    let viewport_height = 2.0;
-    let viewport_width = aspect_ratio * viewport_height;
-    let focal_length = 1.0;
-
-    let origin = Point3 {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0,
-    };
-    let horizontal = Vec3 {
-        x: viewport_width,
-        y: 0.0,
-        z: 0.0,
-    };
-    let vertical = Vec3 {
-        x: 0.0,
-        y: viewport_height,
-        z: 0.0,
-    };
-    let lower_left_corner = origin
-        - horizontal / 2.0
-        - vertical / 2.0
-        - Vec3 {
-            x: 0.0,
-            y: 0.0,
-            z: focal_length,
-        };
+    let camera = Camera::default();
 
     let world = HittableList {
         objects: vec![
@@ -271,15 +261,15 @@ fn main() {
     for j in (0..image_height).rev() {
         eprintln!("scanlines remaining: {0}", j);
         for i in 0..image_width {
-            let u = i as f64 / (image_width - 1) as f64;
-            let v = j as f64 / (image_height - 1) as f64;
+            let mut pixel_colour: Colour = Colour::default();
+            for _s in 0..samples_per_pixel {
+                let u = (i as f64 + math_util::random()) / (image_width - 1) as f64;
+                let v = (j as f64 + math_util::random()) / (image_height - 1) as f64;
 
-            let r = Ray {
-                origin: origin,
-                dir: lower_left_corner + u * horizontal + v * vertical - origin,
-            };
-            let pixel_colour = ray_colour(r, Box::new(&world));
-            write_colour(pixel_colour);
+                let r = get_ray(camera, u, v);
+                pixel_colour += ray_colour(r, Box::new(&world));
+            }
+            write_colour(pixel_colour, samples_per_pixel);
         }
     }
     eprintln!("Done.");
