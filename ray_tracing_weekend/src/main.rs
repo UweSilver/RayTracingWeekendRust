@@ -7,11 +7,29 @@ use math_util::*;
 mod ray;
 use ray::*;
 
+#[derive(Debug, Clone, Copy)]
+enum MaterialKind {
+    diffuse,
+    metal,
+    glass,
+}
+
+trait Material{
+    fn scatter(self, r_in: Ray, rec: HitRecord, attenuation: &mut Colour, scattered: &mut Ray)->bool;
+}
+
+impl Material for MaterialKind{
+    fn scatter(self, r_in: Ray, rec: HitRecord, attenuation: &mut Colour, scattered: &mut Ray)->bool {
+        false
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 struct HitRecord {
     p: Point3,
     normal: Vec3,
     t: f64,
+    material: MaterialKind,
 }
 
 impl Default for HitRecord {
@@ -20,6 +38,7 @@ impl Default for HitRecord {
             p: Vec3::default(),
             normal: Vec3::default(),
             t: f64::default(),
+            material: MaterialKind::diffuse,
         }
     }
 }
@@ -52,6 +71,7 @@ impl Hittable for Sphere {
                     t: temp,
                     p: p,
                     normal: normal,
+                    material: MaterialKind::diffuse
                 });
             }
             let temp = (-half_b + root) / a;
@@ -63,6 +83,7 @@ impl Hittable for Sphere {
                     t: t,
                     p: p,
                     normal: normal,
+                    material: MaterialKind::diffuse
                 });
             }
         }
@@ -153,7 +174,7 @@ fn get_ray(camera: Camera, u: f64, v: f64) -> Ray {
 }
 
 fn ray_colour(ray: Ray, hittable: Box<&dyn Hittable>, depth: i32) -> Colour {
-    if (depth <= 0) {
+    if depth <= 0 {
         return Colour {
             x: 0.0,
             y: 0.0,
