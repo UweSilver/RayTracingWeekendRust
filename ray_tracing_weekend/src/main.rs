@@ -1,10 +1,16 @@
-use std::{ops};
+use std::{ops, default};
 
 #[derive(Copy, Debug, Clone)]
 struct Vec3{
     x: f64,
     y: f64,
     z: f64,
+}
+
+impl Default for Vec3{
+    fn default() -> Self {
+        Vec3 { x: 0.0, y: 0.0, z: 0.0 }
+    }
 }
 
 impl ops::Add<Vec3> for Vec3{
@@ -106,14 +112,21 @@ fn hit_sphere(center: Point3, radius: f64, ray: Ray) -> f64{
     }
 }
 
+#[derive(Clone, Copy, Debug)]
 struct HitRecord{
     p: Point3,
     normal: Vec3,
     t: f64,
 }
 
+impl Default for HitRecord{
+    fn default() -> Self {
+        HitRecord { p: Vec3::default(), normal: Vec3::default(), t: f64::default() }
+    }
+}
+
 trait Hittable{
-    fn hit(self, ray: Ray, t_min: f64, t_max: f64, record: &mut HitRecord)->bool;
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64)->Option<HitRecord>;
 }
 
 struct Sphere{
@@ -122,7 +135,7 @@ struct Sphere{
 }
 
 impl Hittable for Sphere{
-    fn hit(self, ray: Ray, t_min: f64, t_max: f64, record: &mut HitRecord)->bool {
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64)->Option<HitRecord> {
         let oc = ray.origin - self.center;
         let a = length_squared(ray.dir);
         let half_b = dot(oc, ray.dir);
@@ -132,29 +145,61 @@ impl Hittable for Sphere{
         if discriminant > 0.0 {
             let root = f64::sqrt(discriminant);
             let temp = (-half_b - root) / a;
-            if (temp < t_max && temp > t_min ){
-                record.t = temp;
-                record.p = ray.at(record.t);
-                record.normal = (record.p - self.center) / self.radius;
-                return true;
+            if temp < t_max && temp > t_min {
+                let t = temp;
+                let p = ray.at(t);
+                let normal = (p - self.center) / self.radius;
+                return Some(HitRecord{t: temp, p: p, normal: normal});
             }
             let temp = (-half_b + root) / a;
-            if (temp < t_max && temp > t_min){
-                record.t = temp;
-                record.p = ray.at(record.t);
-                record.normal = (record.p - self.center) / self.radius;
-                return true;
+            if temp < t_max && temp > t_min{
+                let t = temp;
+                let p = ray.at(t);
+                let normal = (p - self.center) / self.radius;
+                return Some(HitRecord{t: t, p: p, normal: normal});
             }
         }
-        return false;
+        return None
     }
 }
 
-fn ray_colour(ray: Ray) -> Colour{
-    let t =  hit_sphere(Point3{x: 0.0, y: 0.0, z: -1.0}, 0.5, ray);
-    if t > 0.0{
-        let n = unit_vector(ray.at(t) - Vec3{x: 0.0, y: 0.0, z: -1.0});
-        return 0.5 * Colour{x: n.x + 1.0, y: n.y + 1.0, z: n.z + 1.0};
+
+struct  HittableList{
+    objects: Vec<Box<dyn Hittable>>,
+}
+
+impl Hittable for HittableList{
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64)->Option<HitRecord> {
+        let mut record = HitRecord::default();
+        let mut hit_anithing = false;
+        let mut closest_so_far = t_max;
+
+        self.objects.iter().for_each(|object| {
+            match object.hit(ray, t_min, closest_so_far) {
+                Some(object_hit_record) => {
+                    record = object_hit_record.clone();
+                    hit_anithing = true;
+                    closest_so_far = object_hit_record.t;
+                }
+                None =>{}
+            }
+        });
+
+        if hit_anithing{
+            Some(record)
+        }
+        else{
+            None
+        }
+    }
+}
+
+fn ray_colour(ray: Ray, hittable: Box<&dyn Hittable>) -> Colour{
+    match hittable.hit(ray, 0.0, f64::MAX){
+        Some(record) =>{
+            return 0.5 * (record.normal + Colour{x: 1.0, y: 1.0, z: 1.0});
+        }
+        None=> {}
     }
 
     let unit_direction: Vec3 = unit_vector(ray.dir);
@@ -180,6 +225,8 @@ fn main() {
     let vertical = Vec3{x: 0.0, y: viewport_height, z: 0.0};
     let lower_left_corner = origin - horizontal / 2.0 - vertical / 2.0- Vec3{x: 0.0, y: 0.0, z: focal_length};
 
+    let world = HittableList{objects: vec![Box::new(Sphere{center: Vec3 { x: 0.0, y: 0.0, z: -1.0 }, radius: 0.5}), Box::new(Sphere{center: Vec3{x: 0.0, y: -100.5, z: -1.0}, radius: 100.0})]};
+
     for j in (0..image_height).rev(){
         eprintln!("scanlines remaining: {0}", j);
         for i in 0..image_width{
@@ -187,7 +234,7 @@ fn main() {
             let v = j as f64 / (image_height - 1) as f64;
 
             let r = Ray{origin: origin, dir: lower_left_corner + u * horizontal + v * vertical - origin};
-            let pixel_colour = ray_colour(r);
+            let pixel_colour = ray_colour(r, Box::new(&world));
             write_colour(pixel_colour);
         }
     }
