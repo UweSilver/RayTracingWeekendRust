@@ -106,6 +106,50 @@ fn hit_sphere(center: Point3, radius: f64, ray: Ray) -> f64{
     }
 }
 
+struct HitRecord{
+    p: Point3,
+    normal: Vec3,
+    t: f64,
+}
+
+trait Hittable{
+    fn hit(self, ray: Ray, t_min: f64, t_max: f64, record: &mut HitRecord)->bool;
+}
+
+struct Sphere{
+    center: Point3,
+    radius: f64,
+}
+
+impl Hittable for Sphere{
+    fn hit(self, ray: Ray, t_min: f64, t_max: f64, record: &mut HitRecord)->bool {
+        let oc = ray.origin - self.center;
+        let a = length_squared(ray.dir);
+        let half_b = dot(oc, ray.dir);
+        let c = length_squared(oc) - self.radius * self.radius;
+        let discriminant = half_b * half_b - a*c;
+
+        if discriminant > 0.0 {
+            let root = f64::sqrt(discriminant);
+            let temp = (-half_b - root) / a;
+            if (temp < t_max && temp > t_min ){
+                record.t = temp;
+                record.p = ray.at(record.t);
+                record.normal = (record.p - self.center) / self.radius;
+                return true;
+            }
+            let temp = (-half_b + root) / a;
+            if (temp < t_max && temp > t_min){
+                record.t = temp;
+                record.p = ray.at(record.t);
+                record.normal = (record.p - self.center) / self.radius;
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
 fn ray_colour(ray: Ray) -> Colour{
     let t =  hit_sphere(Point3{x: 0.0, y: 0.0, z: -1.0}, 0.5, ray);
     if t > 0.0{
