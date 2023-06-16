@@ -102,7 +102,7 @@ fn hit_sphere(center: Point3, radius: f64, ray: Ray) -> f64{
     if discriminant < 0.0 {
         -1.0
     } else {
-        (-half_b - f64::sqrt(discriminant)) / (2.0 * a)
+        (-half_b - f64::sqrt(discriminant)) / a
     }
 }
 
