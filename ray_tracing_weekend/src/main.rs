@@ -1,112 +1,11 @@
 use rand::prelude::*;
 use std::{default, ops};
 
-#[derive(Copy, Debug, Clone)]
-struct Vec3 {
-    x: f64,
-    y: f64,
-    z: f64,
-}
+mod vec3;
+use vec3::*;
 
-impl Default for Vec3 {
-    fn default() -> Self {
-        Vec3 {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-        }
-    }
-}
-
-impl ops::Add<Vec3> for Vec3 {
-    type Output = Vec3;
-    fn add(self, rhs: Vec3) -> Vec3 {
-        let output: Vec3 = Vec3 {
-            x: (self.x + rhs.x),
-            y: (self.y + rhs.y),
-            z: (self.z + rhs.z),
-        };
-        output
-    }
-}
-
-impl ops::Sub<Vec3> for Vec3 {
-    type Output = Vec3;
-    fn sub(self, rhs: Vec3) -> Vec3 {
-        let output: Vec3 = Vec3 {
-            x: (self.x - rhs.x),
-            y: (self.y - rhs.y),
-            z: (self.z - rhs.z),
-        };
-        output
-    }
-}
-
-impl ops::Mul<f64> for Vec3 {
-    type Output = Vec3;
-    fn mul(self, _rhs: f64) -> Self::Output {
-        Self::Output {
-            x: self.x * _rhs,
-            y: self.y * _rhs,
-            z: self.z * _rhs,
-        }
-    }
-}
-
-impl ops::Mul<Vec3> for f64 {
-    type Output = Vec3;
-    fn mul(self, _rhs: Vec3) -> Self::Output {
-        Self::Output {
-            x: self * _rhs.x,
-            y: self * _rhs.y,
-            z: self * _rhs.z,
-        }
-    }
-}
-
-impl ops::Div<f64> for Vec3 {
-    type Output = Vec3;
-    fn div(self, _rhs: f64) -> Self::Output {
-        Self::Output {
-            x: self.x / _rhs,
-            y: self.y / _rhs,
-            z: self.z / _rhs,
-        }
-    }
-}
-
-fn dot(lhs: Vec3, rhs: Vec3) -> f64 {
-    lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
-}
-
-fn cross(lhs: Vec3, rhs: Vec3) -> Vec3 {
-    Vec3 {
-        x: lhs.y * rhs.z - lhs.z * rhs.y,
-        y: lhs.z * rhs.x - lhs.x * rhs.z,
-        z: lhs.x * rhs.y - lhs.y * rhs.x,
-    }
-}
-
-fn length_squared(lhs: Vec3) -> f64 {
-    lhs.x * lhs.x + lhs.y * lhs.y + lhs.z * lhs.z
-}
-
-fn length(lhs: Vec3) -> f64 {
-    f64::sqrt(length_squared(lhs))
-}
-
-fn unit_vector(lhs: Vec3) -> Vec3 {
-    lhs / length(lhs)
-}
-
-impl std::fmt::Display for Vec3 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {} {}", self.x, self.y, self.z)
-    }
-}
-
-type Colour = Vec3;
-type Point3 = Vec3;
+mod math_util;
+use math_util::*;
 
 fn write_colour(c: Colour) {
     println!(
@@ -282,16 +181,8 @@ impl Default for Camera {
     }
 }
 
-fn random() -> f64 {
-    rand::random()
-}
-
-fn random_range(min: f64, max: f64) -> f64 {
-    min + (max - min) * random()
-}
-
 fn ray_colour(ray: Ray, hittable: Box<&dyn Hittable>) -> Colour {
-    match hittable.hit(ray, 0.0, f64::MAX) {
+    match hittable.hit(ray, 0.0, infinite()) {
         Some(record) => {
             return 0.5
                 * (record.normal
