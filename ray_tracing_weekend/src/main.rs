@@ -258,8 +258,10 @@ fn main() {
         ],
     };
 
+    let bar = indicatif::ProgressBar::new(image_height as u64);
+
     for j in (0..image_height).rev() {
-        eprintln!("scanlines remaining: {0}", j);
+        //eprintln!("scanlines remaining: {0}", j);
         for i in 0..image_width {
             let mut pixel_colour: Colour = Colour::default();
             for _s in 0..samples_per_pixel {
@@ -271,6 +273,8 @@ fn main() {
             }
             write_colour(pixel_colour, samples_per_pixel);
         }
+
+        bar.inc(1);
     }
     eprintln!("Done.");
 }
