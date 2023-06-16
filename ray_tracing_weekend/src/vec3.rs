@@ -1,4 +1,6 @@
-use std::ops;
+use std::{f64::consts::PI, ops};
+
+use crate::math_util::{self, Random};
 
 #[derive(Copy, Debug, Clone)]
 pub struct Vec3 {
@@ -57,6 +59,17 @@ impl ops::SubAssign<Vec3> for Vec3 {
     }
 }
 
+impl ops::Neg for Vec3 {
+    type Output = Vec3;
+    fn neg(self) -> Self::Output {
+        Vec3 {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
+        }
+    }
+}
+
 impl ops::Mul<f64> for Vec3 {
     type Output = Vec3;
     fn mul(self, _rhs: f64) -> Self::Output {
@@ -112,6 +125,55 @@ pub fn length(lhs: Vec3) -> f64 {
 
 pub fn unit_vector(lhs: Vec3) -> Vec3 {
     lhs / length(lhs)
+}
+
+impl math_util::Random for Vec3 {
+    type Output = Vec3;
+    fn random() -> Vec3 {
+        Vec3 {
+            x: f64::random(),
+            y: f64::random(),
+            z: f64::random(),
+        }
+    }
+    fn random_range(min: f64, max: f64) -> Vec3 {
+        Vec3 {
+            x: f64::random_range(min, max),
+            y: f64::random_range(min, max),
+            z: f64::random_range(min, max),
+        }
+    }
+}
+
+pub fn random_vec3_in_unit_sphere() -> Vec3 {
+    loop {
+        let p = Vec3::random_range(-1.0, 1.0);
+        if length_squared(p) > 1.0 {
+            continue;
+        } else {
+            return p;
+        }
+    }
+}
+
+pub fn random_unit_vec3() -> Vec3 {
+    let a = f64::random_range(0.0, 2.0 * PI);
+    let z = f64::random_range(-1.0, 1.0);
+    let r = f64::sqrt(1.0 - z * z);
+    Vec3 {
+        x: r * f64::cos(a),
+        y: r * f64::sin(a),
+        z: z,
+    }
+}
+
+pub fn random_in_hemisphere(normal: Vec3) -> Vec3 {
+    let in_unit_sphere = random_vec3_in_unit_sphere();
+    if dot(in_unit_sphere, normal) > 0.0 {
+        in_unit_sphere
+    } else {
+        -in_unit_sphere
+    }
 }
 
 impl std::fmt::Display for Vec3 {

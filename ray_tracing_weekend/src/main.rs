@@ -178,16 +178,27 @@ fn get_ray(camera: Camera, u: f64, v: f64) -> Ray {
     }
 }
 
-fn ray_colour(ray: Ray, hittable: Box<&dyn Hittable>) -> Colour {
-    match hittable.hit(ray, 0.0, infinite()) {
+fn ray_colour(ray: Ray, hittable: Box<&dyn Hittable>, depth: i32) -> Colour {
+    if (depth <= 0) {
+        return Colour {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        };
+    }
+
+    match hittable.hit(ray, 0.001, infinite()) {
         Some(record) => {
+            let target = record.p + random_in_hemisphere(record.normal);
             return 0.5
-                * (record.normal
-                    + Colour {
-                        x: 1.0,
-                        y: 1.0,
-                        z: 1.0,
-                    });
+                * (ray_colour(
+                    Ray {
+                        origin: record.p,
+                        dir: target - record.p,
+                    },
+                    hittable,
+                    depth - 1,
+                ));
         }
         None => {}
     }
@@ -213,9 +224,9 @@ fn write_colour(pixel_colour: Colour, samples_per_pixel: i32) {
     let mut b = pixel_colour.z;
 
     let scale = 1.0 / samples_per_pixel as f64;
-    r *= scale;
-    g *= scale;
-    b *= scale;
+    r = f64::sqrt(scale * r);
+    g = f64::sqrt(scale * g);
+    b = f64::sqrt(scale * b);
 
     println!(
         "{} {} {}",
@@ -227,9 +238,11 @@ fn write_colour(pixel_colour: Colour, samples_per_pixel: i32) {
 
 fn main() {
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 384;
+    let image_width = 768;
+    //let image_width = 1920;
     let image_height = (image_width as f64 / aspect_ratio) as i32;
     let samples_per_pixel = 100;
+    let depth = 50;
 
     println!("P3");
     println!("{0} {1}", image_width, image_height);
@@ -265,11 +278,11 @@ fn main() {
         for i in 0..image_width {
             let mut pixel_colour: Colour = Colour::default();
             for _s in 0..samples_per_pixel {
-                let u = (i as f64 + math_util::random()) / (image_width - 1) as f64;
-                let v = (j as f64 + math_util::random()) / (image_height - 1) as f64;
+                let u = (i as f64 + f64::random()) / (image_width - 1) as f64;
+                let v = (j as f64 + f64::random()) / (image_height - 1) as f64;
 
                 let r = get_ray(camera, u, v);
-                pixel_colour += ray_colour(r, Box::new(&world));
+                pixel_colour += ray_colour(r, Box::new(&world), depth);
             }
             write_colour(pixel_colour, samples_per_pixel);
         }

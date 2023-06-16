@@ -1,9 +1,17 @@
-pub fn random() -> f64 {
-    rand::random()
+pub trait Random {
+    type Output;
+    fn random() -> Self::Output;
+    fn random_range(min: f64, max: f64) -> Self::Output;
 }
 
-pub fn random_range(min: f64, max: f64) -> f64 {
-    min + (max - min) * random()
+impl Random for f64 {
+    type Output = f64;
+    fn random() -> Self::Output {
+        rand::random()
+    }
+    fn random_range(min: f64, max: f64) -> Self::Output {
+        min + (max - min) * Self::random()
+    }
 }
 
 pub fn infinite() -> f64 {
