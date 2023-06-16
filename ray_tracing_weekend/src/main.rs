@@ -52,8 +52,12 @@ fn cross(lhs : Vec3, rhs: Vec3) -> Vec3{
     Vec3{x: lhs.y * rhs.z - lhs.z *rhs.y, y: lhs.z * rhs.x - lhs.x * rhs.z, z: lhs.x * rhs.y - lhs.y * rhs.x}
 }
 
+fn length_squared(lhs: Vec3) -> f64{
+    lhs.x * lhs.x + lhs.y * lhs.y + lhs.z * lhs.z
+}
+
 fn length(lhs: Vec3) -> f64{
-    f64::sqrt(lhs.x * lhs.x + lhs.y * lhs.y + lhs.z * lhs.z)
+    f64::sqrt(length_squared(lhs))
 }
 
 fn unit_vector(lhs: Vec3) -> Vec3{
@@ -91,14 +95,14 @@ impl Point for Ray{
 
 fn hit_sphere(center: Point3, radius: f64, ray: Ray) -> f64{
     let oc = ray.origin - center;
-    let a = dot(ray.dir, ray.dir);
-    let b = 2.0 * dot(oc, ray.dir);
-    let c = dot(oc, oc) - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
+    let a = length_squared(ray.dir);
+    let half_b = dot(oc, ray.dir);
+    let c = length_squared(oc) - radius * radius;
+    let discriminant = half_b * half_b - a * c;
     if discriminant < 0.0 {
         -1.0
     } else {
-        (-b - f64::sqrt(discriminant)) / (2.0 * a)
+        (-half_b - f64::sqrt(discriminant)) / (2.0 * a)
     }
 }
 
