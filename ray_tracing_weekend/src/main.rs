@@ -4,34 +4,8 @@ use vec3::*;
 mod math_util;
 use math_util::*;
 
-#[derive(Copy, Debug, Clone)]
-struct Ray {
-    origin: Point3,
-    dir: Vec3,
-}
-
-trait Point {
-    fn at(self, t: f64) -> Point3;
-}
-
-impl Point for Ray {
-    fn at(self, t: f64) -> Point3 {
-        self.origin + t * self.dir
-    }
-}
-
-fn hit_sphere(center: Point3, radius: f64, ray: Ray) -> f64 {
-    let oc = ray.origin - center;
-    let a = length_squared(ray.dir);
-    let half_b = dot(oc, ray.dir);
-    let c = length_squared(oc) - radius * radius;
-    let discriminant = half_b * half_b - a * c;
-    if discriminant < 0.0 {
-        -1.0
-    } else {
-        (-half_b - f64::sqrt(discriminant)) / a
-    }
-}
+mod ray;
+use ray::*;
 
 #[derive(Clone, Copy, Debug)]
 struct HitRecord {
