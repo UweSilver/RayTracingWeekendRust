@@ -55,9 +55,9 @@ struct Sphere {
 impl Hittable for Sphere {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = ray.origin - self.center;
-        let a = length_squared(ray.dir);
+        let a = ray.dir.length_squared();
         let half_b = dot(oc, ray.dir);
-        let c = length_squared(oc) - self.radius * self.radius;
+        let c = oc.length_squared() - self.radius * self.radius;
         let discriminant = half_b * half_b - a * c;
 
         if discriminant > 0.0 {
@@ -198,7 +198,7 @@ fn ray_colour(ray: Ray, hittable: Box<&dyn Hittable>, depth: i32) -> Colour {
         None => {}
     }
 
-    let unit_direction: Vec3 = unit_vector(ray.dir);
+    let unit_direction: Vec3 = ray.dir.get_normalized();
     let t = 0.5 * (unit_direction.y + 1.0);
     (1.0 - t)
         * Colour {

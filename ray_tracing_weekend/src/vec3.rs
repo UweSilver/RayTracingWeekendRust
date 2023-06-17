@@ -92,6 +92,14 @@ impl ops::Mul<Vec3> for f64 {
     }
 }
 
+impl ops::MulAssign<f64> for Vec3{
+    fn mul_assign(&mut self, rhs: f64) {
+        self.x *= rhs;
+        self.y *= rhs;
+        self.z *= rhs;
+    }
+}
+
 impl ops::Div<f64> for Vec3 {
     type Output = Vec3;
     fn div(self, _rhs: f64) -> Self::Output {
@@ -100,6 +108,14 @@ impl ops::Div<f64> for Vec3 {
             y: self.y / _rhs,
             z: self.z / _rhs,
         }
+    }
+}
+
+impl ops::DivAssign<f64> for Vec3{
+    fn div_assign(&mut self, rhs: f64) {
+        self.x /= rhs;
+        self.y /= rhs;
+        self.z /= rhs;
     }
 }
 
@@ -115,16 +131,22 @@ pub fn cross(lhs: Vec3, rhs: Vec3) -> Vec3 {
     }
 }
 
-pub fn length_squared(lhs: Vec3) -> f64 {
-    lhs.x * lhs.x + lhs.y * lhs.y + lhs.z * lhs.z
-}
+impl Vec3{
+    pub fn length_squared(self) -> f64{
+        self.x * self.x + self.y * self.y + self.z * self.z
+    }
 
-pub fn length(lhs: Vec3) -> f64 {
-    f64::sqrt(length_squared(lhs))
-}
+    pub fn length(self) -> f64{
+        f64::sqrt(self.length_squared())
+    }
 
-pub fn unit_vector(lhs: Vec3) -> Vec3 {
-    lhs / length(lhs)
+    pub fn normalize(mut self) {
+        self /= self.length()
+    }
+
+    pub fn get_normalized(self) -> Vec3{
+        self.clone() / self.length()
+    }
 }
 
 impl math_util::Random for Vec3 {
@@ -148,7 +170,7 @@ impl math_util::Random for Vec3 {
 pub fn random_vec3_in_unit_sphere() -> Vec3 {
     loop {
         let p = Vec3::random_range(-1.0, 1.0);
-        if length_squared(p) > 1.0 {
+        if p.length_squared() > 1.0 {
             continue;
         } else {
             return p;
