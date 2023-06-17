@@ -14,12 +14,24 @@ enum MaterialKind {
     glass,
 }
 
-trait Material{
-    fn scatter(self, r_in: Ray, rec: HitRecord, attenuation: &mut Colour, scattered: &mut Ray)->bool;
+trait Material {
+    fn scatter(
+        self,
+        r_in: Ray,
+        rec: HitRecord,
+        attenuation: &mut Colour,
+        scattered: &mut Ray,
+    ) -> bool;
 }
 
-impl Material for MaterialKind{
-    fn scatter(self, r_in: Ray, rec: HitRecord, attenuation: &mut Colour, scattered: &mut Ray)->bool {
+impl Material for MaterialKind {
+    fn scatter(
+        self,
+        r_in: Ray,
+        rec: HitRecord,
+        attenuation: &mut Colour,
+        scattered: &mut Ray,
+    ) -> bool {
         false
     }
 }
@@ -71,7 +83,7 @@ impl Hittable for Sphere {
                     t: temp,
                     p: p,
                     normal: normal,
-                    material: MaterialKind::diffuse
+                    material: MaterialKind::diffuse,
                 });
             }
             let temp = (-half_b + root) / a;
@@ -83,7 +95,7 @@ impl Hittable for Sphere {
                     t: t,
                     p: p,
                     normal: normal,
-                    material: MaterialKind::diffuse
+                    material: MaterialKind::diffuse,
                 });
             }
         }

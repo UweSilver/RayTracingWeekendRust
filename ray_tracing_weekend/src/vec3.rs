@@ -92,7 +92,7 @@ impl ops::Mul<Vec3> for f64 {
     }
 }
 
-impl ops::MulAssign<f64> for Vec3{
+impl ops::MulAssign<f64> for Vec3 {
     fn mul_assign(&mut self, rhs: f64) {
         self.x *= rhs;
         self.y *= rhs;
@@ -111,7 +111,7 @@ impl ops::Div<f64> for Vec3 {
     }
 }
 
-impl ops::DivAssign<f64> for Vec3{
+impl ops::DivAssign<f64> for Vec3 {
     fn div_assign(&mut self, rhs: f64) {
         self.x /= rhs;
         self.y /= rhs;
@@ -131,12 +131,12 @@ pub fn cross(lhs: Vec3, rhs: Vec3) -> Vec3 {
     }
 }
 
-impl Vec3{
-    pub fn length_squared(self) -> f64{
+impl Vec3 {
+    pub fn length_squared(self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
 
-    pub fn length(self) -> f64{
+    pub fn length(self) -> f64 {
         f64::sqrt(self.length_squared())
     }
 
@@ -144,7 +144,7 @@ impl Vec3{
         self /= self.length()
     }
 
-    pub fn get_normalized(self) -> Vec3{
+    pub fn get_normalized(self) -> Vec3 {
         self.clone() / self.length()
     }
 }
