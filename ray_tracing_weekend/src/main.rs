@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 mod vec3;
 use vec3::*;
 
@@ -7,50 +9,63 @@ use math_util::*;
 mod ray;
 use ray::*;
 
-#[derive(Debug, Clone, Copy)]
-enum MaterialKind {
-    diffuse,
-    metal,
-    glass,
-}
-
 trait Material {
-    fn scatter(
-        self,
-        r_in: Ray,
-        rec: HitRecord,
-        attenuation: &mut Colour,
-        scattered: &mut Ray,
-    ) -> bool;
+    fn scatter(&self, r_in: Ray, rec: HitRecord) -> Option<(Colour, Ray)>;
 }
 
-impl Material for MaterialKind {
-    fn scatter(
-        self,
-        r_in: Ray,
-        rec: HitRecord,
-        attenuation: &mut Colour,
-        scattered: &mut Ray,
-    ) -> bool {
-        false
+struct Lambertian {
+    albedo: Colour,
+}
+
+impl Material for Lambertian {
+    fn scatter(&self, r_in: Ray, rec: HitRecord) -> Option<(Colour, Ray)> {
+        let scatter_direction = rec.normal + random_unit_vec3();
+        let scattered = Ray {
+            origin: rec.p,
+            dir: scatter_direction,
+        };
+        Some((self.albedo, scattered))
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+struct Metal {
+    albedo: Colour,
+}
+
+impl Material for Metal {
+    fn scatter(&self, r_in: Ray, rec: HitRecord) -> Option<(Colour, Ray)> {
+        let reflected = reflect(r_in.dir.get_normalized(), rec.normal);
+        let scattered = Ray {
+            origin: rec.p,
+            dir: reflected,
+        };
+        let attenuation = self.albedo;
+
+        if dot(scattered.dir, rec.normal) > 0.0 {
+            Some((attenuation, scattered))
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Clone)]
 struct HitRecord {
     p: Point3,
     normal: Vec3,
     t: f64,
-    material: MaterialKind,
+    material: Rc<dyn Material>,
 }
 
 impl Default for HitRecord {
     fn default() -> Self {
-        HitRecord {
+        Self {
             p: Vec3::default(),
             normal: Vec3::default(),
             t: f64::default(),
-            material: MaterialKind::diffuse,
+            material: Rc::new(Lambertian {
+                albedo: Vec3::default(),
+            }),
         }
     }
 }
@@ -62,6 +77,7 @@ trait Hittable {
 struct Sphere {
     center: Point3,
     radius: f64,
+    material: Rc<dyn Material>,
 }
 
 impl Hittable for Sphere {
@@ -83,7 +99,7 @@ impl Hittable for Sphere {
                     t: temp,
                     p: p,
                     normal: normal,
-                    material: MaterialKind::diffuse,
+                    material: Rc::clone(&self.material),
                 });
             }
             let temp = (-half_b + root) / a;
@@ -95,7 +111,7 @@ impl Hittable for Sphere {
                     t: t,
                     p: p,
                     normal: normal,
-                    material: MaterialKind::diffuse,
+                    material: Rc::clone(&self.material),
                 });
             }
         }
@@ -104,7 +120,7 @@ impl Hittable for Sphere {
 }
 
 struct HittableList {
-    objects: Vec<Box<dyn Hittable>>,
+    objects: Vec<Rc<dyn Hittable>>,
 }
 
 impl Hittable for HittableList {
@@ -195,18 +211,14 @@ fn ray_colour(ray: Ray, hittable: Box<&dyn Hittable>, depth: i32) -> Colour {
     }
 
     match hittable.hit(ray, 0.001, infinite()) {
-        Some(record) => {
-            let target = record.p + random_in_hemisphere(record.normal);
-            return 0.5
-                * (ray_colour(
-                    Ray {
-                        origin: record.p,
-                        dir: target - record.p,
-                    },
-                    hittable,
-                    depth - 1,
-                ));
-        }
+        Some(record) => match record.material.scatter(ray, record.clone()) {
+            Some((attenuation, scattered)) => {
+                return attenuation * ray_colour(scattered, hittable, depth - 1);
+            }
+            None => {
+                return Colour::default();
+            }
+        },
         None => {}
     }
 
@@ -259,21 +271,66 @@ fn main() {
 
     let world = HittableList {
         objects: vec![
-            Box::new(Sphere {
+            Rc::new(Sphere {
                 center: Vec3 {
                     x: 0.0,
                     y: 0.0,
                     z: -1.0,
                 },
                 radius: 0.5,
+                material: Rc::new(Lambertian {
+                    albedo: Colour {
+                        x: 0.7,
+                        y: 0.3,
+                        z: 0.3,
+                    },
+                }),
             }),
-            Box::new(Sphere {
+            Rc::new(Sphere {
+                center: Vec3 {
+                    x: 1.0,
+                    y: 0.0,
+                    z: -1.0,
+                },
+                radius: 0.5,
+                material: Rc::new(Metal {
+                    albedo: Colour {
+                        x: 0.8,
+                        y: 0.6,
+                        z: 0.2,
+                    },
+                }),
+            }),
+            Rc::new(Sphere {
+                center: Vec3 {
+                    x: -1.0,
+                    y: 0.0,
+                    z: -1.0,
+                },
+                radius: 0.5,
+                material: Rc::new(Metal {
+                    albedo: Colour {
+                        x: 0.8,
+                        y: 0.8,
+                        z: 0.8,
+                    },
+                }),
+            }),
+            Rc::new(Sphere {
                 center: Vec3 {
                     x: 0.0,
                     y: -100.5,
                     z: -1.0,
                 },
                 radius: 100.0,
+                //material: Rc::new(Lambertian{albedo: Colour{x: 0.1, y: 0.7, z: 0.1}})
+                material: Rc::new(Lambertian {
+                    albedo: Colour {
+                        x: 0.1,
+                        y: 0.7,
+                        z: 0.1,
+                    },
+                }),
             }),
         ],
     };
