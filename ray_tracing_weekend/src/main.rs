@@ -221,45 +221,8 @@ struct Camera {
     horizontal: Vec3,
     vertical: Vec3,
     lens_radius: f64,
-}
-
-impl Default for Camera {
-    fn default() -> Self {
-        let aspect_ratio = 16.0 / 9.0;
-        let viewport_height = 2.0;
-        let viewport_width = aspect_ratio * viewport_height;
-        let focal_length = 1.0;
-
-        let mut camera = Camera {
-            origin: Point3 {
-                x: 0.0,
-                y: 0.0,
-                z: 0.0,
-            },
-            horizontal: Vec3 {
-                x: viewport_width,
-                y: 0.0,
-                z: 0.0,
-            },
-            vertical: Vec3 {
-                x: 0.0,
-                y: viewport_height,
-                z: 0.0,
-            },
-            lower_left_corner: Vec3::default(),
-            lens_radius: 1.0,
-        };
-        camera.lower_left_corner = camera.origin
-            - camera.horizontal / 2.0
-            - camera.vertical / 2.0
-            - Vec3 {
-                x: 0.0,
-                y: 0.0,
-                z: focal_length,
-            };
-
-        camera
-    }
+    u: Vec3,
+    v: Vec3,
 }
 
 fn create_camera(
@@ -293,16 +256,14 @@ fn create_camera(
         horizontal: horizontal,
         vertical: vertical,
         lens_radius: lens_radius,
+        u: u,
+        v: v,
     }
 }
 
 fn get_ray(camera: Camera, s: f64, t: f64) -> Ray {
     let rd = camera.lens_radius * random_in_unit_disk();
-    let offset = Vec3 {
-        x: s * rd.x,
-        y: t * rd.y,
-        z: 0.0,
-    };
+    let offset = camera.u * rd.x + camera.v * rd.y;
     Ray {
         origin: camera.origin + offset,
         dir: camera.lower_left_corner + s * camera.horizontal + t * camera.vertical
@@ -368,7 +329,7 @@ fn write_colour(pixel_colour: Colour, samples_per_pixel: i32) {
 fn main() {
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 384;
-    //let image_width = 1920;
+    let image_width = 1920;
     let image_height = (image_width as f64 / aspect_ratio) as i32;
     let samples_per_pixel = 100;
     let depth = 50;
