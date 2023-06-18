@@ -146,6 +146,13 @@ pub fn reflect(v: Vec3, normal: Vec3) -> Vec3 {
     v - 2.0 * dot(v, normal) * normal
 }
 
+pub fn refract(uv: Vec3, normal: Vec3, etai_over_etat: f64) -> Vec3 {
+    let cos_theta = dot(-uv, normal);
+    let r_out_parallel = etai_over_etat * (uv + cos_theta * normal);
+    let r_out_perp = -f64::sqrt(1.0 - r_out_parallel.length_squared()) * normal;
+    r_out_parallel + r_out_perp
+}
+
 impl Vec3 {
     pub fn length_squared(self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z

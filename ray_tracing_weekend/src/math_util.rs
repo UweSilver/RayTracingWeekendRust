@@ -27,3 +27,8 @@ pub fn clamp(x: f64, min: f64, max: f64) -> f64 {
         x
     }
 }
+
+pub fn schlick(cosine: f64, ref_idx: f64) -> f64 {
+    let r0 = f64::powf((1.0 - ref_idx) / (1.0 + ref_idx), 2.0);
+    r0 + (1.0 - r0) * f64::powf((1.0 - cosine), 5.0)
+}

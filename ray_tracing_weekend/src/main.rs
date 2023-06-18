@@ -49,11 +49,68 @@ impl Material for Metal {
     }
 }
 
+struct Dielectric {
+    ref_idx: f64,
+}
+
+impl Material for Dielectric {
+    fn scatter(&self, r_in: Ray, rec: HitRecord) -> Option<(Colour, Ray)> {
+        let attenuation = Colour {
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+        };
+
+        let etai_over_etat = if rec.front_face {
+            1.0 / self.ref_idx
+        } else {
+            self.ref_idx
+        };
+
+        let unit_direction = r_in.dir.get_normalized();
+        let cos_theta = f64::min(dot(-unit_direction, rec.normal), 1.0);
+        let sin_theta = f64::sqrt(1.0 - cos_theta * cos_theta);
+
+        if etai_over_etat * sin_theta > 1.0 {
+            let reflected = reflect(unit_direction, rec.normal);
+            Some((
+                attenuation,
+                Ray {
+                    origin: rec.p,
+                    dir: reflected,
+                },
+            ))
+        } else {
+            let reflect_prob = schlick(cos_theta, etai_over_etat);
+            if f64::random() < reflect_prob {
+                let reflected = reflect(unit_direction, rec.normal);
+                Some((
+                    attenuation,
+                    Ray {
+                        origin: rec.p,
+                        dir: reflected,
+                    },
+                ))
+            } else {
+                let refracted = refract(unit_direction, rec.normal, etai_over_etat);
+                Some((
+                    attenuation,
+                    Ray {
+                        origin: rec.p,
+                        dir: refracted,
+                    },
+                ))
+            }
+        }
+    }
+}
+
 #[derive(Clone)]
 struct HitRecord {
     p: Point3,
     normal: Vec3,
     t: f64,
+    front_face: bool,
     material: Rc<dyn Material>,
 }
 
@@ -63,10 +120,22 @@ impl Default for HitRecord {
             p: Vec3::default(),
             normal: Vec3::default(),
             t: f64::default(),
+            front_face: false,
             material: Rc::new(Lambertian {
                 albedo: Vec3::default(),
             }),
         }
+    }
+}
+
+impl HitRecord {
+    fn set_face_normal(&mut self, ray: Ray, outward_normal: Vec3) {
+        self.front_face = dot(ray.dir, outward_normal) < 0.0;
+        self.normal = if self.front_face {
+            outward_normal
+        } else {
+            -outward_normal
+        };
     }
 }
 
@@ -92,27 +161,23 @@ impl Hittable for Sphere {
             let root = f64::sqrt(discriminant);
             let temp = (-half_b - root) / a;
             if temp < t_max && temp > t_min {
-                let t = temp;
-                let p = ray.at(t);
-                let normal = (p - self.center) / self.radius;
-                return Some(HitRecord {
-                    t: temp,
-                    p: p,
-                    normal: normal,
-                    material: Rc::clone(&self.material),
-                });
+                let mut record = HitRecord::default();
+                record.t = temp;
+                record.p = ray.at(record.t);
+                record.material = Rc::clone(&self.material);
+                let outward_normal = (record.p - self.center) / self.radius;
+                record.set_face_normal(ray, outward_normal);
+                return Some(record);
             }
             let temp = (-half_b + root) / a;
             if temp < t_max && temp > t_min {
-                let t = temp;
-                let p = ray.at(t);
-                let normal = (p - self.center) / self.radius;
-                return Some(HitRecord {
-                    t: t,
-                    p: p,
-                    normal: normal,
-                    material: Rc::clone(&self.material),
-                });
+                let mut record = HitRecord::default();
+                record.t = temp;
+                record.p = ray.at(record.t);
+                record.material = Rc::clone(&self.material);
+                let outward_normal = (record.p - self.center) / self.radius;
+                record.set_face_normal(ray, outward_normal);
+                return Some(record);
             }
         }
         return None;
@@ -257,8 +322,8 @@ fn write_colour(pixel_colour: Colour, samples_per_pixel: i32) {
 
 fn main() {
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 768;
-    //let image_width = 1920;
+    //let image_width = 384;
+    let image_width = 1920;
     let image_height = (image_width as f64 / aspect_ratio) as i32;
     let samples_per_pixel = 100;
     let depth = 50;
@@ -308,13 +373,7 @@ fn main() {
                     z: -1.0,
                 },
                 radius: 0.5,
-                material: Rc::new(Metal {
-                    albedo: Colour {
-                        x: 0.8,
-                        y: 0.8,
-                        z: 0.8,
-                    },
-                }),
+                material: Rc::new(Dielectric { ref_idx: 1.5 }),
             }),
             Rc::new(Sphere {
                 center: Vec3 {
@@ -337,7 +396,6 @@ fn main() {
     let bar = indicatif::ProgressBar::new(image_height as u64);
 
     for j in (0..image_height).rev() {
-        //eprintln!("scanlines remaining: {0}", j);
         for i in 0..image_width {
             let mut pixel_colour: Colour = Colour::default();
             for _s in 0..samples_per_pixel {
