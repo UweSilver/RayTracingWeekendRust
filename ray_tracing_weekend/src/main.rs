@@ -323,7 +323,6 @@ fn main() {
                     z: -1.0,
                 },
                 radius: 100.0,
-                //material: Rc::new(Lambertian{albedo: Colour{x: 0.1, y: 0.7, z: 0.1}})
                 material: Rc::new(Lambertian {
                     albedo: Colour {
                         x: 0.1,
