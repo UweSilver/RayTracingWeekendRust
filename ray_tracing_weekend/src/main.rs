@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{f64::consts::PI, rc::Rc};
 
 mod vec3;
 use vec3::*;
@@ -259,6 +259,35 @@ impl Default for Camera {
     }
 }
 
+fn create_camera(
+    lookfrom: Point3,
+    lookat: Point3,
+    vup: Vec3,
+    vfov: f64,
+    aspect_ratio: f64,
+) -> Camera {
+    let theta = f64::to_radians(vfov);
+    let h = f64::tan(theta / 2.0);
+    let viewport_height = 2.0 * h;
+    let viewport_width = aspect_ratio * viewport_height;
+
+    let w = (lookfrom - lookat).get_normalized();
+    let u = cross(vup, w).get_normalized();
+    let v = cross(w, u);
+
+    let origin = lookfrom;
+    let horizontal = viewport_width * u;
+    let vertical = viewport_height * v;
+    let lower_left_corner = origin - horizontal / 2.0 - vertical / 2.0 - w;
+
+    Camera {
+        origin: origin,
+        lower_left_corner: lower_left_corner,
+        horizontal: horizontal,
+        vertical: vertical,
+    }
+}
+
 fn get_ray(camera: Camera, u: f64, v: f64) -> Ray {
     Ray {
         origin: camera.origin,
@@ -322,8 +351,8 @@ fn write_colour(pixel_colour: Colour, samples_per_pixel: i32) {
 
 fn main() {
     let aspect_ratio = 16.0 / 9.0;
-    //let image_width = 384;
-    let image_width = 1920;
+    let image_width = 384;
+    //let image_width = 1920;
     let image_height = (image_width as f64 / aspect_ratio) as i32;
     let samples_per_pixel = 100;
     let depth = 50;
@@ -332,12 +361,12 @@ fn main() {
     println!("{0} {1}", image_width, image_height);
     println!("255");
 
-    let camera = Camera::default();
+    let camera = create_camera(Point3{x: -2.0, y: 2.0, z: 1.0}, Point3{x: 0.0, y:0.0, z:-1.0}, Vec3{x: 0.0, y: 1.0, z: 0.0}, 20.0, image_width as f64 / image_height as f64);
 
     let world = HittableList {
         objects: vec![
             Rc::new(Sphere {
-                center: Vec3 {
+                center: Point3 {
                     x: 0.0,
                     y: 0.0,
                     z: -1.0,
@@ -345,14 +374,29 @@ fn main() {
                 radius: 0.5,
                 material: Rc::new(Lambertian {
                     albedo: Colour {
-                        x: 0.7,
-                        y: 0.3,
-                        z: 0.3,
+                        x: 0.1,
+                        y: 0.2,
+                        z: 0.5,
                     },
                 }),
             }),
             Rc::new(Sphere {
-                center: Vec3 {
+                center: Point3 {
+                    x: 0.0,
+                    y: -100.5,
+                    z: -1.0,
+                },
+                radius: 100.0,
+                material: Rc::new(Lambertian {
+                    albedo: Colour {
+                        x: 0.8,
+                        y: 0.8,
+                        z: 0.0,
+                    },
+                }),
+            }),
+            Rc::new(Sphere {
+                center: Point3 {
                     x: 1.0,
                     y: 0.0,
                     z: -1.0,
@@ -367,28 +411,22 @@ fn main() {
                 }),
             }),
             Rc::new(Sphere {
-                center: Vec3 {
+                center: Point3 {
                     x: -1.0,
                     y: 0.0,
                     z: -1.0,
                 },
                 radius: 0.5,
-                material: Rc::new(Dielectric { ref_idx: 1.5 }),
+                material: Rc::new(Dielectric{ref_idx: 1.5}),
             }),
             Rc::new(Sphere {
-                center: Vec3 {
-                    x: 0.0,
-                    y: -100.5,
+                center: Point3 {
+                    x: -1.0,
+                    y: 0.0,
                     z: -1.0,
                 },
-                radius: 100.0,
-                material: Rc::new(Lambertian {
-                    albedo: Colour {
-                        x: 0.1,
-                        y: 0.7,
-                        z: 0.1,
-                    },
-                }),
+                radius: -0.45,
+                material: Rc::new(Dielectric{ref_idx: 1.5}),
             }),
         ],
     };
