@@ -30,7 +30,7 @@ impl Material for Lambertian {
 
 struct Metal {
     albedo: Colour,
-    fuzz: f64,//[0, 1]
+    fuzz: f64, //[0, 1]
 }
 
 impl Material for Metal {
@@ -298,10 +298,16 @@ fn create_camera(
 
 fn get_ray(camera: Camera, s: f64, t: f64) -> Ray {
     let rd = camera.lens_radius * random_in_unit_disk();
-    let offset = Vec3{x: s * rd.x, y: t * rd.y, z: 0.0};
+    let offset = Vec3 {
+        x: s * rd.x,
+        y: t * rd.y,
+        z: 0.0,
+    };
     Ray {
         origin: camera.origin + offset,
-        dir: camera.lower_left_corner + s * camera.horizontal + t * camera.vertical - camera.origin - offset,
+        dir: camera.lower_left_corner + s * camera.horizontal + t * camera.vertical
+            - camera.origin
+            - offset,
     }
 }
 
@@ -371,79 +377,137 @@ fn main() {
     println!("{0} {1}", image_width, image_height);
     println!("255");
 
-    let lookfrom = Point3{x: -2.0, y: 2.0, z: 1.0};
-    let lookat =  Point3{x: 0.0, y:0.0, z:-1.0};
-    let vup = Vec3{x: 0.0, y: 1.0, z: 0.0};
-    let camera = create_camera(lookfrom, lookat, vup, 20.0, image_width as f64 / image_height as f64, 2.0, (lookfrom - lookat).length());
-
-    let world = HittableList {
-        objects: vec![
-            Rc::new(Sphere {
-                center: Point3 {
-                    x: 0.0,
-                    y: 0.0,
-                    z: -1.0,
-                },
-                radius: 0.5,
-                material: Rc::new(Lambertian {
-                    albedo: Colour {
-                        x: 0.1,
-                        y: 0.2,
-                        z: 0.5,
-                    },
-                }),
-            }),
-            Rc::new(Sphere {
-                center: Point3 {
-                    x: 0.0,
-                    y: -100.5,
-                    z: -1.0,
-                },
-                radius: 100.0,
-                material: Rc::new(Lambertian {
-                    albedo: Colour {
-                        x: 0.8,
-                        y: 0.8,
-                        z: 0.0,
-                    },
-                }),
-            }),
-            Rc::new(Sphere {
-                center: Point3 {
-                    x: 1.0,
-                    y: 0.0,
-                    z: -1.0,
-                },
-                radius: 0.5,
-                material: Rc::new(Metal {
-                    albedo: Colour {
-                        x: 0.8,
-                        y: 0.6,
-                        z: 0.2,
-                    },
-                    fuzz: 0.3
-                }),
-            }),
-            Rc::new(Sphere {
-                center: Point3 {
-                    x: -1.0,
-                    y: 0.0,
-                    z: -1.0,
-                },
-                radius: 0.5,
-                material: Rc::new(Dielectric{ref_idx: 1.5}),
-            }),
-            Rc::new(Sphere {
-                center: Point3 {
-                    x: -1.0,
-                    y: 0.0,
-                    z: -1.0,
-                },
-                radius: -0.45,
-                material: Rc::new(Dielectric{ref_idx: 1.5}),
-            }),
-        ],
+    let lookfrom = Point3 {
+        x: 13.0,
+        y: 2.0,
+        z: 3.0,
     };
+    let lookat = Point3 {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+    };
+    let vup = Vec3 {
+        x: 0.0,
+        y: 1.0,
+        z: 0.0,
+    };
+    let camera = create_camera(
+        lookfrom,
+        lookat,
+        vup,
+        20.0,
+        image_width as f64 / image_height as f64,
+        0.1,
+        10.0,
+    );
+
+    let mut world = HittableList { objects: vec![] };
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat = f64::random();
+            let center = Vec3 {
+                x: a as f64 + 0.9 * f64::random(),
+                y: 0.2,
+                z: b as f64 + 0.9 * f64::random(),
+            };
+
+            if (center
+                - Vec3 {
+                    x: 4.0,
+                    y: 0.2,
+                    z: 0.0,
+                })
+            .length()
+                > 0.9
+            {
+                if choose_mat < 0.8 {
+                    let albedo = Colour::random() * Colour::random();
+                    world.objects.push(Rc::new(Sphere {
+                        center: center,
+                        radius: 0.2,
+                        material: Rc::new(Lambertian { albedo: albedo }),
+                    }));
+                } else if choose_mat < 0.95 {
+                    let albedo = Colour::random_range(0.5, 1.0);
+                    let fuzz = f64::random_range(0.0, 0.5);
+                    world.objects.push(Rc::new(Sphere {
+                        center: center,
+                        radius: 0.2,
+                        material: Rc::new(Metal {
+                            albedo: albedo,
+                            fuzz: fuzz,
+                        }),
+                    }));
+                } else {
+                    world.objects.push(Rc::new(Sphere {
+                        center: center,
+                        radius: 0.2,
+                        material: Rc::new(Dielectric { ref_idx: 1.5 }),
+                    }));
+                }
+            }
+        }
+    }
+
+    world.objects.push(Rc::new(Sphere {
+        center: Vec3 {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        },
+        radius: 1.0,
+        material: Rc::new(Dielectric { ref_idx: 1.5 }),
+    }));
+    world.objects.push(Rc::new(Sphere {
+        center: Vec3 {
+            x: -4.0,
+            y: 1.0,
+            z: 0.0,
+        },
+        radius: 1.0,
+        material: Rc::new(Lambertian {
+            albedo: Colour {
+                x: 0.4,
+                y: 0.2,
+                z: 0.1,
+            },
+        }),
+    }));
+    world.objects.push(Rc::new(Sphere {
+        center: Vec3 {
+            x: 4.0,
+            y: 1.0,
+            z: 0.0,
+        },
+        radius: 1.0,
+        material: Rc::new(Metal {
+            albedo: Colour {
+                x: 0.7,
+                y: 0.6,
+                z: 0.5,
+            },
+            fuzz: 0.0,
+        }),
+    }));
+
+    let ground_mat = Rc::new(Lambertian {
+        albedo: Colour {
+            x: 0.5,
+            y: 0.5,
+            z: 0.5,
+        },
+    });
+    world.objects.push(Rc::new(Sphere {
+        center: Point3 {
+            x: 0.0,
+            y: -1000.0,
+            z: 0.0,
+        },
+        radius: 1000.0,
+        material: ground_mat.clone(),
+    }));
 
     let bar = indicatif::ProgressBar::new(image_height as u64);
 
