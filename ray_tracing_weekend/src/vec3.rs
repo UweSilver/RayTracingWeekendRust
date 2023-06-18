@@ -220,6 +220,14 @@ pub fn random_in_hemisphere(normal: Vec3) -> Vec3 {
     }
 }
 
+pub fn random_in_unit_disk() -> Vec3{
+    loop{
+        let p = Vec3{x: f64::random_range(-1.0, 1.0), y: f64::random_range(-1.0, 1.0), z: 0.0};
+        if p.length_squared() > 1.0{continue;}
+        else {return p;}
+    }
+}
+
 impl std::fmt::Display for Vec3 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {} {}", self.x, self.y, self.z)

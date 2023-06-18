@@ -220,6 +220,7 @@ struct Camera {
     lower_left_corner: Point3,
     horizontal: Vec3,
     vertical: Vec3,
+    lens_radius: f64,
 }
 
 impl Default for Camera {
@@ -246,6 +247,7 @@ impl Default for Camera {
                 z: 0.0,
             },
             lower_left_corner: Vec3::default(),
+            lens_radius: 1.0,
         };
         camera.lower_left_corner = camera.origin
             - camera.horizontal / 2.0
@@ -266,6 +268,8 @@ fn create_camera(
     vup: Vec3,
     vfov: f64,
     aspect_ratio: f64,
+    aperture: f64,
+    focus_dist: f64,
 ) -> Camera {
     let theta = f64::to_radians(vfov);
     let h = f64::tan(theta / 2.0);
@@ -277,22 +281,27 @@ fn create_camera(
     let v = cross(w, u);
 
     let origin = lookfrom;
-    let horizontal = viewport_width * u;
-    let vertical = viewport_height * v;
-    let lower_left_corner = origin - horizontal / 2.0 - vertical / 2.0 - w;
+    let horizontal = viewport_width * u * focus_dist;
+    let vertical = viewport_height * v * focus_dist;
+    let lower_left_corner = origin - horizontal / 2.0 - vertical / 2.0 - w * focus_dist;
+
+    let lens_radius = aperture / 2.0;
 
     Camera {
         origin: origin,
         lower_left_corner: lower_left_corner,
         horizontal: horizontal,
         vertical: vertical,
+        lens_radius: lens_radius,
     }
 }
 
-fn get_ray(camera: Camera, u: f64, v: f64) -> Ray {
+fn get_ray(camera: Camera, s: f64, t: f64) -> Ray {
+    let rd = camera.lens_radius * random_in_unit_disk();
+    let offset = Vec3{x: s * rd.x, y: t * rd.y, z: 0.0};
     Ray {
-        origin: camera.origin,
-        dir: camera.lower_left_corner + u * camera.horizontal + v * camera.vertical - camera.origin,
+        origin: camera.origin + offset,
+        dir: camera.lower_left_corner + s * camera.horizontal + t * camera.vertical - camera.origin - offset,
     }
 }
 
@@ -362,7 +371,10 @@ fn main() {
     println!("{0} {1}", image_width, image_height);
     println!("255");
 
-    let camera = create_camera(Point3{x: -2.0, y: 2.0, z: 1.0}, Point3{x: 0.0, y:0.0, z:-1.0}, Vec3{x: 0.0, y: 1.0, z: 0.0}, 20.0, image_width as f64 / image_height as f64);
+    let lookfrom = Point3{x: -2.0, y: 2.0, z: 1.0};
+    let lookat =  Point3{x: 0.0, y:0.0, z:-1.0};
+    let vup = Vec3{x: 0.0, y: 1.0, z: 0.0};
+    let camera = create_camera(lookfrom, lookat, vup, 20.0, image_width as f64 / image_height as f64, 2.0, (lookfrom - lookat).length());
 
     let world = HittableList {
         objects: vec![
