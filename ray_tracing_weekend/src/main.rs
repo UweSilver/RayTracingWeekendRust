@@ -30,6 +30,7 @@ impl Material for Lambertian {
 
 struct Metal {
     albedo: Colour,
+    fuzz: f64,//[0, 1]
 }
 
 impl Material for Metal {
@@ -37,7 +38,7 @@ impl Material for Metal {
         let reflected = reflect(r_in.dir.get_normalized(), rec.normal);
         let scattered = Ray {
             origin: rec.p,
-            dir: reflected,
+            dir: reflected + self.fuzz * random_vec3_in_unit_sphere(),
         };
         let attenuation = self.albedo;
 
@@ -408,6 +409,7 @@ fn main() {
                         y: 0.6,
                         z: 0.2,
                     },
+                    fuzz: 0.3
                 }),
             }),
             Rc::new(Sphere {
